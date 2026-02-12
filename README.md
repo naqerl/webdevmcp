@@ -1,97 +1,41 @@
 # webviewmcp
 
-Cross-browser MCP bridge for local web app interaction and debugging.
+`webviewmcp` is a browser extension + local companion service that exposes web page debugging and interaction tools over MCP HTTP. It lets agents inspect pages, interact with elements, and capture screenshots in real browsers.
 
-## Requirements
+## Features
 
-- Node.js 24+
-- npm 11+
+- Cross-browser support (Chromium + Firefox builds)
+- MCP HTTP endpoint for agent tooling
+- DOM inspection and page structure querying
+- Element interaction (click/type/keypress/scroll)
+- Screenshot capture
+- Local-first debugging workflow
 
-## Setup
+## Install
 
-```bash
-make install
-npx playwright install chromium firefox
-```
-
-## Build
-
-Build extension bundle and manifests:
-
-```bash
-make build-extension
-```
-
-Package both browser builds as zip files:
-
-```bash
-make package-extensions
-```
-
-Output files are created in `artifacts/extensions/`:
-- `webviewmcp-chromium-v<version>.zip`
-- `webviewmcp-firefox-v<version>.zip`
-
-## Run Companion
-
-```bash
-make run-companion
-```
-
-Companion endpoints:
-- `http://127.0.0.1:8787/mcp` (HTTP MCP)
-- `ws://127.0.0.1:8788/bridge` (extension bridge)
-
-## Load Extension Locally
+1. Open the Releases page and download latest artifacts:
+   - `webviewmcp-chromium-v*.zip`
+   - `webviewmcp-firefox-v*.zip`
+2. Extract each zip locally.
 
 ### Chromium
 
-1. Run `make build-extension`
-2. Open `chrome://extensions`
-3. Enable `Developer mode`
-4. Click `Load unpacked`
-5. Select the `extension/` folder
+1. Open `chrome://extensions`
+2. Enable `Developer mode`
+3. Click `Load unpacked`
+4. Select the extracted Chromium extension folder (contains `manifest.json`)
 
 ### Firefox
 
-1. Run `make build-extension`
-2. Open `about:debugging#/runtime/this-firefox`
-3. Click `Load Temporary Add-on...`
-4. Select `extension/manifest.firefox.built.json`
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click `Load Temporary Add-on...`
+3. Select `manifest.json` from the extracted Firefox extension folder
 
-Note: temporary Firefox add-ons are removed when Firefox restarts.
+## Companion Service
 
-## Testing
+Run the local companion service to expose MCP over HTTP:
 
-```bash
-make lint
-make typecheck
-make test-unit
-make test-integration
-make test-e2e
-make test
-```
+- HTTP MCP: `http://127.0.0.1:8787/mcp`
+- Extension bridge: `ws://127.0.0.1:8788/bridge`
 
-Enable extension-loaded Chromium E2E test:
-
-```bash
-E2E_RUN_EXTENSION=1 make test-e2e-local
-```
-
-## CI/CD
-
-GitHub workflow: `.github/workflows/build-and-release.yml`
-
-- On every push: lint, typecheck, unit/integration tests, package extension artifacts
-- On tag push matching `v*`: creates a GitHub release and attaches both extension zip files
-
-## First Release
-
-Create and push a semver tag:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-This triggers the release job automatically.
+See `AGENTS.md` for development and build details.
