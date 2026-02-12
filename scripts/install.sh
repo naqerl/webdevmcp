@@ -5,6 +5,8 @@ REPO="${WEBVIEWMCP_REPO:-naqerl/webdevmcp}"
 BIN_DIR="${WEBVIEWMCP_BIN_DIR:-$HOME/.local/bin}"
 DATA_DIR="${WEBVIEWMCP_DATA_DIR:-$HOME/.local/share/webviewmcp}"
 TMP_DIR="$(mktemp -d)"
+TOTAL_STEPS=7
+CURRENT_STEP=0
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -20,6 +22,12 @@ need_cmd() {
 
 need_cmd curl
 need_cmd unzip
+
+step() {
+  CURRENT_STEP=$((CURRENT_STEP + 1))
+  echo
+  echo "[${CURRENT_STEP}/${TOTAL_STEPS}] $1"
+}
 
 mkdir -p "$BIN_DIR" "$DATA_DIR/extensions"
 
@@ -51,7 +59,9 @@ COMPANION_BIN="$TMP_DIR/webviewmcp-companion"
 fetch_asset() {
   local asset="$1"
   local out="$2"
-  curl -fsSL "${BASE_URL}/${asset}" -o "$out"
+  local url="${BASE_URL}/${asset}"
+  echo "  - downloading ${asset}"
+  curl -fL --retry 3 --retry-delay 2 "$url" -o "$out"
 }
 
 has_flatpak_app() {
@@ -90,6 +100,7 @@ if [[ ${#IDS[@]} -eq 0 ]]; then
   exit 1
 fi
 
+step "Detected browsers"
 echo "Detected browsers:"
 for i in "${!IDS[@]}"; do
   n=$((i + 1))
@@ -116,11 +127,12 @@ for token in "${picked[@]}"; do
   fi
 done
 
-echo "Downloading release assets..."
+step "Downloading release assets (with ETA)"
 fetch_asset "webviewmcp-chromium.zip" "$CHROMIUM_ZIP"
 fetch_asset "webviewmcp-firefox.zip" "$FIREFOX_ZIP"
 fetch_asset "$COMPANION_ASSET" "$COMPANION_BIN"
 
+step "Installing companion binary"
 chmod +x "$COMPANION_BIN"
 install -m 0755 "$COMPANION_BIN" "$BIN_DIR/webviewmcp-companion"
 
@@ -129,6 +141,8 @@ EXT_FIREFOX_DIR="$DATA_DIR/extensions/firefox"
 
 rm -rf "$EXT_CHROMIUM_DIR" "$EXT_FIREFOX_DIR"
 mkdir -p "$EXT_CHROMIUM_DIR" "$EXT_FIREFOX_DIR"
+
+step "Unpacking extension payloads"
 unzip -q "$CHROMIUM_ZIP" -d "$EXT_CHROMIUM_DIR"
 unzip -q "$FIREFOX_ZIP" -d "$EXT_FIREFOX_DIR"
 
@@ -150,6 +164,33 @@ SCRIPT
   fi
 
   chmod +x "$wrapper_path"
+}
+
+create_firefox_wrapper() {
+  local wrapper_path="$1"
+  local runner="$2"
+  local source="$3"
+  local profile_dir="$4"
+
+  if [[ "$source" == "flatpak" ]]; then
+    cat > "$wrapper_path" <<SCRIPT
+#!/usr/bin/env bash
+exec flatpak run "$runner" --profile "$profile_dir" "\$@"
+SCRIPT
+  else
+    cat > "$wrapper_path" <<SCRIPT
+#!/usr/bin/env bash
+exec "$runner" --profile "$profile_dir" "\$@"
+SCRIPT
+  fi
+
+  chmod +x "$wrapper_path"
+}
+
+prepare_managed_firefox_profile() {
+  local profile_dir="$1"
+  mkdir -p "$profile_dir/extensions"
+  cp "$FIREFOX_ZIP" "$profile_dir/extensions/webviewmcp@local.xpi"
 }
 
 find_firefox_profile() {
@@ -245,6 +286,7 @@ install_firefox_xpi() {
 
 failures=0
 
+step "Installing browser integrations"
 for i in "${!IDS[@]}"; do
   if [[ -z "${CHOSEN[$i]:-}" ]]; then
     continue
@@ -263,27 +305,31 @@ for i in "${!IDS[@]}"; do
   fi
 
   if [[ "$browser_kind" == "firefox" ]]; then
+    managed_profile_dir="$DATA_DIR/firefox-profiles/$browser_id"
+    firefox_wrapper="$BIN_DIR/webviewmcp-${browser_id}"
+    prepare_managed_firefox_profile "$managed_profile_dir"
+    create_firefox_wrapper "$firefox_wrapper" "$runner" "$source" "$managed_profile_dir"
+    echo "Installed launcher: $firefox_wrapper"
+
     if [[ "$source" == "flatpak" ]]; then
       if install_firefox_xpi "$HOME/.var/app/org.mozilla.firefox/.mozilla/firefox"; then
         echo "Installed Firefox extension in Flatpak profile"
       else
-        echo "Could not find Flatpak Firefox profile for extension install." >&2
-        echo "Run Firefox Flatpak once, close it, then rerun installer." >&2
-        failures=$((failures + 1))
+        echo "Could not update existing Flatpak Firefox profile." >&2
+        echo "Use launcher $firefox_wrapper to run Firefox with webviewmcp profile." >&2
       fi
     else
       if install_firefox_xpi "$HOME/.mozilla/firefox"; then
         echo "Installed Firefox extension in default profile"
       else
-        echo "Could not find Firefox profile for extension install." >&2
-        echo "Run Firefox once, close it, then rerun installer." >&2
-        failures=$((failures + 1))
+        echo "Could not update existing Firefox profile." >&2
+        echo "Use launcher $firefox_wrapper to run Firefox with webviewmcp profile." >&2
       fi
     fi
   fi
 done
 
-echo
+step "Finalizing installation"
 if (( failures > 0 )); then
   echo "Installation completed with ${failures} error(s)." >&2
   exit 1
@@ -292,5 +338,5 @@ fi
 echo "Installation complete."
 echo "Companion binary: $BIN_DIR/webviewmcp-companion"
 echo "If $BIN_DIR is not in PATH, add: export PATH=\"$BIN_DIR:\$PATH\""
-echo "Chromium-family browsers should be launched via installed webviewmcp-* wrappers."
+echo "Selected browsers should be launched via installed webviewmcp-* wrappers."
 echo "Firefox extension install may require developer-enabled Firefox builds if unsigned add-ons are restricted."
