@@ -1,49 +1,27 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { copyFile, mkdir, rm } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { access, copyFile, mkdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 
+import { type BrowserContext, type BrowserType, chromium, firefox, webkit } from "playwright";
+
 export type SupportedBrowser = "chromium" | "firefox" | "webkit";
+type PersistentLaunchOptions = Parameters<BrowserType["launchPersistentContext"]>[1];
 
-interface BrowserRunner {
-  browser: SupportedBrowser;
-  command: string;
-  prefixArgs: string[];
-  executablePath: string;
-}
-
-interface ManagedLaunch {
+interface ManagedContext {
   id: string;
   browser: SupportedBrowser;
   project: string;
   profileDir: string;
-  runner: BrowserRunner;
-  pids: number[];
+  context: BrowserContext;
 }
 
-const NATIVE_RUNNERS: Record<SupportedBrowser, string[]> = {
-  chromium: [
-    "google-chrome",
-    "chromium",
-    "chromium-browser",
-    "brave-browser",
-    "microsoft-edge",
-    "microsoft-edge-stable",
-  ],
-  firefox: ["firefox"],
-  webkit: [],
-};
-
-const FLATPAK_RUNNERS: Record<SupportedBrowser, string[]> = {
-  chromium: [
-    "com.google.Chrome",
-    "org.chromium.Chromium",
-    "com.brave.Browser",
-    "com.microsoft.Edge",
-  ],
-  firefox: ["org.mozilla.firefox"],
-  webkit: [],
+const BROWSER_TYPES: Record<SupportedBrowser, BrowserType> = {
+  chromium,
+  firefox,
+  webkit,
 };
 
 function normalizeProjectName(raw: string | undefined): string {
@@ -60,40 +38,45 @@ function normalizeProjectName(raw: string | undefined): string {
   );
 }
 
-function hasFlatpakApp(appId: string): boolean {
+async function pathExists(path: string): Promise<boolean> {
   try {
-    const result = spawnSync("flatpak", ["info", appId], { stdio: "ignore" });
-    return result.status === 0;
+    await access(path, fsConstants.F_OK);
+    return true;
   } catch {
     return false;
   }
 }
 
-function hasCommand(command: string): boolean {
+async function isExecutable(path: string): Promise<boolean> {
   try {
-    const result = spawnSync("sh", ["-lc", `command -v ${command}`], { stdio: "ignore" });
-    return result.status === 0;
+    await access(path, fsConstants.X_OK);
+    return true;
   } catch {
     return false;
   }
 }
 
-function spawnBrowser(
-  runner: BrowserRunner,
-  browserArgs: string[],
-  detached = false,
-): number | undefined {
-  const child = spawn(runner.command, [...runner.prefixArgs, ...browserArgs], {
-    detached,
-    stdio: "ignore",
+function runCommand(cmd: string, args: string[]): Promise<void> {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn(cmd, args, {
+      stdio: "inherit",
+      env: process.env,
+    });
+
+    child.once("error", rejectPromise);
+    child.once("exit", (code) => {
+      if (code === 0) {
+        resolvePromise();
+        return;
+      }
+
+      rejectPromise(new Error(`Command failed: ${cmd} ${args.join(" ")}`));
+    });
   });
-
-  child.unref();
-  return child.pid;
 }
 
 export class BrowserManager {
-  readonly #launches = new Map<string, ManagedLaunch>();
+  readonly #contexts = new Map<string, ManagedContext>();
   readonly #baseDir: string;
   readonly #extensionBaseDir: string;
 
@@ -103,51 +86,23 @@ export class BrowserManager {
     this.#extensionBaseDir = resolve(userHome, ".local", "share", "webviewmcp", "extensions");
   }
 
-  async #resolveRunner(browser: SupportedBrowser): Promise<BrowserRunner | null> {
-    for (const cmd of NATIVE_RUNNERS[browser]) {
-      if (hasCommand(cmd)) {
-        return {
-          browser,
-          command: cmd,
-          prefixArgs: [],
-          executablePath: cmd,
-        };
-      }
-    }
-
-    if (hasCommand("flatpak")) {
-      for (const appId of FLATPAK_RUNNERS[browser]) {
-        if (hasFlatpakApp(appId)) {
-          return {
-            browser,
-            command: "flatpak",
-            prefixArgs: ["run", appId],
-            executablePath: `flatpak:${appId}`,
-          };
-        }
-      }
-    }
-
-    return null;
-  }
-
   async list(): Promise<{
     browsers: Array<{ browser: SupportedBrowser; installed: boolean; executablePath: string }>;
   }> {
-    const browsers: SupportedBrowser[] = ["chromium", "firefox", "webkit"];
-    const result: Array<{ browser: SupportedBrowser; installed: boolean; executablePath: string }> =
-      [];
+    const entries: Array<{
+      browser: SupportedBrowser;
+      installed: boolean;
+      executablePath: string;
+    }> = [];
 
-    for (const browser of browsers) {
-      const runner = await this.#resolveRunner(browser);
-      result.push({
-        browser,
-        installed: runner !== null,
-        executablePath: runner?.executablePath ?? "",
-      });
+    for (const browser of ["chromium", "firefox", "webkit"] as const) {
+      const type = BROWSER_TYPES[browser];
+      const executablePath = type.executablePath();
+      const installed = await isExecutable(executablePath);
+      entries.push({ browser, installed, executablePath });
     }
 
-    return { browsers: result };
+    return { browsers: entries };
   }
 
   async launch(args: Record<string, unknown>): Promise<{
@@ -160,13 +115,8 @@ export class BrowserManager {
     const browserName = (
       typeof args.browser === "string" ? args.browser : "chromium"
     ) as SupportedBrowser;
-    if (browserName !== "chromium" && browserName !== "firefox" && browserName !== "webkit") {
+    if (!(browserName in BROWSER_TYPES)) {
       throw new Error(`Unsupported browser: ${String(args.browser)}`);
-    }
-
-    const runner = await this.#resolveRunner(browserName);
-    if (!runner) {
-      throw new Error(`Browser not available: ${browserName}`);
     }
 
     const project = normalizeProjectName(
@@ -174,53 +124,56 @@ export class BrowserManager {
     );
     const headless = typeof args.headless === "boolean" ? args.headless : false;
 
+    const type = BROWSER_TYPES[browserName];
+    const executablePath = type.executablePath();
+    let installedNow = false;
+
+    if (!(await isExecutable(executablePath))) {
+      await runCommand("npx", ["playwright", "install", browserName]);
+      installedNow = true;
+    }
+
     const profileDir = resolve(this.#baseDir, project, browserName);
     await mkdir(profileDir, { recursive: true });
+
+    const options: PersistentLaunchOptions = {
+      headless,
+    };
+
+    if (browserName === "chromium") {
+      const extensionDir = resolve(this.#extensionBaseDir, "chromium");
+      if (await pathExists(extensionDir)) {
+        options.args = [
+          `--disable-extensions-except=${extensionDir}`,
+          `--load-extension=${extensionDir}`,
+        ];
+      }
+    }
 
     if (browserName === "firefox") {
       const extensionXpi = resolve(this.#extensionBaseDir, "firefox", "webviewmcp@local.xpi");
       const targetXpi = resolve(profileDir, "extensions", "webviewmcp@local.xpi");
       await mkdir(resolve(profileDir, "extensions"), { recursive: true });
-      try {
+      if (await pathExists(extensionXpi)) {
         await copyFile(extensionXpi, targetXpi);
-      } catch {
-        // best effort: keep working even if extension payload is missing
       }
+
+      options.firefoxUserPrefs = {
+        "xpinstall.signatures.required": false,
+        "extensions.autoDisableScopes": 0,
+        "extensions.enabledScopes": 15,
+      };
     }
 
+    const context = await type.launchPersistentContext(profileDir, options);
     const launchId = `b_${randomUUID()}`;
-    const pids: number[] = [];
-    const browserArgs: string[] = [];
 
-    if (browserName === "chromium") {
-      const extensionDir = resolve(this.#extensionBaseDir, "chromium");
-      browserArgs.push(`--user-data-dir=${profileDir}`);
-      if (headless) {
-        browserArgs.push("--headless=new");
-      }
-      browserArgs.push(`--disable-extensions-except=${extensionDir}`);
-      browserArgs.push(`--load-extension=${extensionDir}`);
-    }
-
-    if (browserName === "firefox") {
-      browserArgs.push("--profile", profileDir);
-      if (headless) {
-        browserArgs.push("--headless");
-      }
-    }
-
-    const pid = spawnBrowser(runner, browserArgs, true);
-    if (typeof pid === "number") {
-      pids.push(pid);
-    }
-
-    this.#launches.set(launchId, {
+    this.#contexts.set(launchId, {
       id: launchId,
       browser: browserName,
       project,
       profileDir,
-      runner,
-      pids,
+      context,
     });
 
     return {
@@ -228,8 +181,24 @@ export class BrowserManager {
       browser: browserName,
       project,
       profileDir,
-      installedNow: false,
+      installedNow,
     };
+  }
+
+  async close(args: Record<string, unknown>): Promise<{ ok: boolean }> {
+    const launchId = typeof args.launchId === "string" ? args.launchId : "";
+    if (!launchId) {
+      throw new Error("launchId is required");
+    }
+
+    const managed = this.#contexts.get(launchId);
+    if (!managed) {
+      return { ok: false };
+    }
+
+    await managed.context.close();
+    this.#contexts.delete(launchId);
+    return { ok: true };
   }
 
   async openLinks(args: Record<string, unknown>): Promise<{ ok: boolean; opened: number }> {
@@ -239,71 +208,55 @@ export class BrowserManager {
     if (!launchId) {
       throw new Error("launchId is required");
     }
+
     if (!linksRaw) {
       throw new Error("links must be an array");
     }
 
-    const launch = this.#launches.get(launchId);
-    if (!launch) {
+    const managed = this.#contexts.get(launchId);
+    if (!managed) {
       throw new Error("launchId not found");
     }
 
     const links = linksRaw.filter(
-      (item): item is string => typeof item === "string" && item.trim().length > 0,
+      (item): item is string => typeof item === "string" && item.length > 0,
     );
     if (links.length === 0) {
       return { ok: true, opened: 0 };
     }
 
-    const browserArgs: string[] = [];
-    if (launch.browser === "chromium") {
-      const extensionDir = resolve(this.#extensionBaseDir, "chromium");
-      browserArgs.push(`--user-data-dir=${launch.profileDir}`);
-      browserArgs.push(`--disable-extensions-except=${extensionDir}`);
-      browserArgs.push(`--load-extension=${extensionDir}`);
-      browserArgs.push(...links);
-    } else if (launch.browser === "firefox") {
-      browserArgs.push("--profile", launch.profileDir, ...links);
-    } else {
-      browserArgs.push(...links);
+    const firstLink = links[0];
+    if (!firstLink) {
+      return { ok: true, opened: 0 };
     }
 
-    const pid = spawnBrowser(launch.runner, browserArgs);
-    if (typeof pid === "number") {
-      launch.pids.push(pid);
+    const pages = managed.context.pages();
+    const firstPage = pages.length > 0 ? pages[0] : await managed.context.newPage();
+    if (!firstPage) {
+      throw new Error("Unable to get a page for browser context");
+    }
+
+    await firstPage.goto(firstLink, { waitUntil: "domcontentloaded" });
+
+    for (const link of links.slice(1)) {
+      const page = await managed.context.newPage();
+      await page.goto(link, { waitUntil: "domcontentloaded" });
     }
 
     return { ok: true, opened: links.length };
   }
 
-  async close(args: Record<string, unknown>): Promise<{ ok: boolean }> {
-    const launchId = typeof args.launchId === "string" ? args.launchId : "";
-    if (!launchId) {
-      throw new Error("launchId is required");
-    }
-
-    const launch = this.#launches.get(launchId);
-    if (!launch) {
-      return { ok: false };
-    }
-
-    for (const pid of launch.pids) {
-      try {
-        process.kill(pid, "SIGTERM");
-      } catch {
-        // process already exited
-      }
-    }
-
-    this.#launches.delete(launchId);
-    return { ok: true };
-  }
-
   async shutdown(): Promise<void> {
-    const launchIds = Array.from(this.#launches.keys());
-    for (const launchId of launchIds) {
-      await this.close({ launchId });
-    }
+    const closing = Array.from(this.#contexts.values()).map(async (managed) => {
+      try {
+        await managed.context.close();
+      } catch {
+        // best effort shutdown
+      }
+    });
+
+    await Promise.all(closing);
+    this.#contexts.clear();
   }
 
   async cleanupProject(project: string): Promise<{ ok: boolean; removedPath: string }> {

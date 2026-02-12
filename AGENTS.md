@@ -101,6 +101,7 @@ On tag push (`v*`):
   - `webviewmcp-chromium.zip`
   - `webviewmcp-firefox.zip`
   - `webdev-linux-x64`
+  - `webdev-runtime-node_modules.tar.gz`
   - `install.sh`
 
 ## Release

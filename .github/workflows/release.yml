@@ -45,6 +45,9 @@ jobs:
       - name: Build companion binary
         run: make build-companion-binary
 
+      - name: Package Playwright runtime modules
+        run: make package-playwright-runtime
+
       - name: Prepare release assets
         run: |
           cp artifacts/bin/webdev-linux-x64 artifacts/extensions/
@@ -58,6 +61,7 @@ jobs:
             artifacts/extensions/webviewmcp-chromium.zip
             artifacts/extensions/webviewmcp-firefox.zip
             artifacts/extensions/webdev-linux-x64
+            artifacts/extensions/webdev-runtime-node_modules.tar.gz
             artifacts/extensions/install.sh
 
   release:
@@ -81,5 +85,6 @@ jobs:
             artifacts/extensions/webviewmcp-chromium.zip
             artifacts/extensions/webviewmcp-firefox.zip
             artifacts/extensions/webdev-linux-x64
+            artifacts/extensions/webdev-runtime-node_modules.tar.gz
             artifacts/extensions/install.sh
           generate_release_notes: true
