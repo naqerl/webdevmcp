@@ -1,7 +1,10 @@
+import { cwd } from "node:process";
+
 import type { ToolName } from "@webviewmcp/protocol";
 
 import { BrowserManager } from "./browserManager.js";
 import { ExtensionBridge } from "./extensionBridge.js";
+import { loadProjectConfig } from "./projectConfig.js";
 import { createMcpHttpServer } from "./server.js";
 
 const httpPort = Number(process.env.PORT ?? "8787");
@@ -31,13 +34,34 @@ const dispatcher = {
 
 const server = createMcpHttpServer({ dispatcher });
 
-server.listen(httpPort, httpHost);
+async function bootProjectSession(): Promise<void> {
+  const config = await loadProjectConfig(cwd());
+
+  const launch = await browserManager.launch({
+    browser: config.browser,
+    project: config.project,
+    headless: config.headless,
+  });
+
+  await browserManager.openLinks({
+    launchId: launch.launchId,
+    links: config.links,
+  });
+
+  process.stdout.write(
+    `webviewmcp ready on http://${httpHost}:${String(httpPort)}/mcp with ${config.browser} (${config.project})\n`,
+  );
+}
 
 async function shutdown(): Promise<void> {
   await browserManager.shutdown();
   bridge.close();
   server.close();
 }
+
+server.listen(httpPort, httpHost, () => {
+  void bootProjectSession();
+});
 
 process.once("SIGINT", () => {
   void shutdown();

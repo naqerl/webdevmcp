@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 
 import { type BrowserContext, type BrowserType, chromium, firefox, webkit } from "playwright";
 
-type SupportedBrowser = "chromium" | "firefox" | "webkit";
+export type SupportedBrowser = "chromium" | "firefox" | "webkit";
 type PersistentLaunchOptions = Parameters<BrowserType["launchPersistentContext"]>[1];
 
 interface ManagedContext {
@@ -199,6 +199,51 @@ export class BrowserManager {
     await managed.context.close();
     this.#contexts.delete(launchId);
     return { ok: true };
+  }
+
+  async openLinks(args: Record<string, unknown>): Promise<{ ok: boolean; opened: number }> {
+    const launchId = typeof args.launchId === "string" ? args.launchId : "";
+    const linksRaw = Array.isArray(args.links) ? args.links : null;
+
+    if (!launchId) {
+      throw new Error("launchId is required");
+    }
+
+    if (!linksRaw) {
+      throw new Error("links must be an array");
+    }
+
+    const managed = this.#contexts.get(launchId);
+    if (!managed) {
+      throw new Error("launchId not found");
+    }
+
+    const links = linksRaw.filter(
+      (item): item is string => typeof item === "string" && item.length > 0,
+    );
+    if (links.length === 0) {
+      return { ok: true, opened: 0 };
+    }
+
+    const firstLink = links[0];
+    if (!firstLink) {
+      return { ok: true, opened: 0 };
+    }
+
+    const pages = managed.context.pages();
+    const firstPage = pages.length > 0 ? pages[0] : await managed.context.newPage();
+    if (!firstPage) {
+      throw new Error("Unable to get a page for browser context");
+    }
+
+    await firstPage.goto(firstLink, { waitUntil: "domcontentloaded" });
+
+    for (const link of links.slice(1)) {
+      const page = await managed.context.newPage();
+      await page.goto(link, { waitUntil: "domcontentloaded" });
+    }
+
+    return { ok: true, opened: links.length };
   }
 
   async shutdown(): Promise<void> {
