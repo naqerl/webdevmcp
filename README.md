@@ -19,6 +19,8 @@
 curl -fsSL https://github.com/naqerl/webdevmcp/releases/latest/download/install.sh | bash
 ```
 
+Installer output includes local extension payload paths for manual browser installation.
+
 ## Workflow
 
 1. Go to your project directory:
@@ -35,6 +37,8 @@ webviewmcp-companion
 - Project profile name
 - Headless mode
 4. Companion writes `webdev.toml`, launches browser with isolated project profile, opens configured tabs, and starts MCP server.
+
+If you run browsers outside Playwright-managed launch, install extension manually from installer output paths.
 
 MCP endpoint:
 - `http://127.0.0.1:8787/mcp`
