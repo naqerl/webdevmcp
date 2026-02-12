@@ -3,7 +3,7 @@ SHELL := /bin/bash
 NPM := npm
 NPM_EXEC := $(NPM) exec --
 
-.PHONY: install format lint typecheck test test-unit test-integration test-e2e test-e2e-local test-e2e-remote build-companion run-companion build-extension clean
+.PHONY: install format lint typecheck test test-unit test-integration test-e2e test-e2e-local test-e2e-remote test-e2e-ssh build-companion run-companion build-extension clean
 
 install:
 	$(NPM) install
@@ -30,6 +30,9 @@ test-e2e-local: build-extension test-e2e
 
 test-e2e-remote:
 	./scripts/e2e/push-and-run-local.sh
+
+test-e2e-ssh:
+	./scripts/e2e/run-ssh-tests.sh
 
 build-companion:
 	$(NPM_EXEC) tsc -p companion/tsconfig.json --pretty false --noEmit false

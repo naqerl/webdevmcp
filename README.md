@@ -76,3 +76,24 @@ make test-e2e-remote
 ```
 
 This syncs the current remote workspace to your local machine and executes E2E there.
+
+### Remote dev server -> run directly over SSH
+
+If your local machine already has this repo checked out, run tests over SSH (no rsync):
+
+```bash
+export LOCAL_E2E_TARGET=user@localhost:/home/user/code/webdevmcp
+export LOCAL_E2E_PORT=8022
+make test-e2e-ssh
+```
+
+Optional branch sync before running tests:
+
+```bash
+BRANCH=debug/my-fix make test-e2e-ssh
+```
+
+When `BRANCH` is set, the remote command runs:
+- `git fetch --all --prune`
+- `git checkout <branch>`
+- `git pull --ff-only origin <branch>`
