@@ -17,4 +17,11 @@ if [[ "${E2E_RUN_EXTENSION:-0}" == "1" && -z "${DISPLAY:-}" ]]; then
   exit 1
 fi
 
-make test-e2e-local
+if command -v make >/dev/null 2>&1; then
+  make test-e2e-local
+  exit 0
+fi
+
+npm exec -- tsc -p extension/tsconfig.json --pretty false --noEmit false
+npm exec -- node scripts/build-manifests.mjs
+npm exec -- vitest run --config vitest.e2e.config.ts

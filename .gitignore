@@ -3,6 +3,7 @@ dist
 coverage
 extension/manifest.json
 playwright-report
+.env
 *.log
 .vscode
 .DS_Store

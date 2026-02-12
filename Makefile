@@ -1,5 +1,8 @@
 SHELL := /bin/bash
 
+-include example.env
+-include .env
+
 NPM := npm
 NPM_EXEC := $(NPM) exec --
 
@@ -32,6 +35,10 @@ test-e2e-remote:
 	./scripts/e2e/push-and-run-local.sh
 
 test-e2e-ssh:
+	LOCAL_E2E_TARGET="$(LOCAL_E2E_TARGET)" \
+	LOCAL_E2E_PORT="$(LOCAL_E2E_PORT)" \
+	BRANCH="$(BRANCH)" \
+	E2E_RUN_EXTENSION="$(E2E_RUN_EXTENSION)" \
 	./scripts/e2e/run-ssh-tests.sh
 
 build-companion:
