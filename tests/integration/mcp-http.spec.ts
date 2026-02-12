@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createMcpHttpServer } from "../../companion/src/server.js";
 import type { ToolName } from "@webviewmcp/protocol";
+import { createMcpHttpServer } from "../../companion/src/server.js";
 
 interface RecordedCall {
   name: ToolName;

@@ -19,9 +19,9 @@ export function isContentToolRequest(value: unknown): value is ContentToolReques
 
   const record = value as Record<string, unknown>;
   return (
-    record["type"] === "mcp_tool" &&
-    typeof record["name"] === "string" &&
-    record["args"] !== null &&
-    typeof record["args"] === "object"
+    record.type === "mcp_tool" &&
+    typeof record.name === "string" &&
+    record.args !== null &&
+    typeof record.args === "object"
   );
 }

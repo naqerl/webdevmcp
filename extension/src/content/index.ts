@@ -1,9 +1,9 @@
 import type { ToolName } from "@webviewmcp/protocol";
 
 import {
-  isContentToolRequest,
   type ContentToolRequest,
   type ContentToolResponse,
+  isContentToolRequest,
 } from "../shared/messages.js";
 import { getWebExtensionApi } from "../shared/webext.js";
 
@@ -58,18 +58,18 @@ function selectorFor(element: Element): string {
       break;
     }
 
-    const parentElement = current.parentElement;
-    if (!parentElement) {
+    const parentNode: Element | null = current.parentElement;
+    if (!parentNode) {
       parts.unshift(tagName);
       break;
     }
 
-    const sameTagSiblings = Array.from(parentElement.children).filter(
-      (child) => child.tagName.toLowerCase() === tagName,
+    const sameTagSiblings = Array.from(parentNode.children).filter(
+      (child: Element) => child.tagName.toLowerCase() === tagName,
     );
     const siblingIndex = sameTagSiblings.indexOf(current) + 1;
     parts.unshift(`${tagName}:nth-of-type(${siblingIndex})`);
-    current = parent;
+    current = parentNode;
   }
 
   return parts.join(" > ");
@@ -129,8 +129,8 @@ function toSnapshotNode(
 }
 
 function resolveElement(args: Record<string, unknown>): Element | null {
-  const selector = asString(args["selector"]);
-  const nodeId = asString(args["nodeId"]);
+  const selector = asString(args.selector);
+  const nodeId = asString(args.nodeId);
   const query = selector ?? nodeId;
   if (!query) {
     return null;
@@ -140,22 +140,22 @@ function resolveElement(args: Record<string, unknown>): Element | null {
 }
 
 function queryElements(args: Record<string, unknown>): Element[] {
-  const selector = asString(args["selector"]);
+  const selector = asString(args.selector);
   if (!selector) {
     throw new Error("selector is required");
   }
 
-  const all = asBoolean(args["all"], false);
+  const all = asBoolean(args.all, false);
   return all
     ? Array.from(document.querySelectorAll(selector))
     : Array.from(document.querySelectorAll(selector)).slice(0, 1);
 }
 
 async function waitFor(args: Record<string, unknown>): Promise<{ ok: true; elapsedMs: number }> {
-  const selector = asString(args["selector"]);
-  const text = asString(args["text"]);
-  const timeoutMs = asPositiveInt(args["timeoutMs"], 10_000);
-  const pollMs = asPositiveInt(args["pollMs"], 200);
+  const selector = asString(args.selector);
+  const text = asString(args.text);
+  const timeoutMs = asPositiveInt(args.timeoutMs, 10_000);
+  const pollMs = asPositiveInt(args.pollMs, 200);
 
   const start = Date.now();
 
@@ -176,9 +176,9 @@ async function waitFor(args: Record<string, unknown>): Promise<{ ok: true; elaps
 
 async function handleTool(name: ToolName, args: Record<string, unknown>): Promise<unknown> {
   if (name === "page.snapshot_dom") {
-    const includeText = asBoolean(args["includeText"], true);
-    const includeBounds = asBoolean(args["includeBounds"], true);
-    const maxNodes = asPositiveInt(args["maxNodes"], 2_000);
+    const includeText = asBoolean(args.includeText, true);
+    const includeBounds = asBoolean(args.includeBounds, true);
+    const maxNodes = asPositiveInt(args.maxNodes, 2_000);
 
     const rootElement = document.documentElement;
     const state = { count: 1 };
@@ -224,8 +224,8 @@ async function handleTool(name: ToolName, args: Record<string, unknown>): Promis
       throw new Error("Target is not a text input");
     }
 
-    const clearFirst = asBoolean(args["clearFirst"], false);
-    const text = asString(args["text"]) ?? "";
+    const clearFirst = asBoolean(args.clearFirst, false);
+    const text = asString(args.text) ?? "";
 
     if (clearFirst) {
       element.value = "";
@@ -241,7 +241,7 @@ async function handleTool(name: ToolName, args: Record<string, unknown>): Promis
 
   if (name === "element.keypress") {
     const element = resolveElement(args);
-    const key = asString(args["key"]) ?? "Enter";
+    const key = asString(args.key) ?? "Enter";
 
     const target = (element as HTMLElement | null) ?? document.body;
     target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
@@ -251,7 +251,7 @@ async function handleTool(name: ToolName, args: Record<string, unknown>): Promis
   }
 
   if (name === "page.scroll") {
-    const selector = asString(args["selector"]);
+    const selector = asString(args.selector);
     if (selector) {
       const element = document.querySelector(selector);
       if (!element) {
@@ -260,8 +260,8 @@ async function handleTool(name: ToolName, args: Record<string, unknown>): Promis
 
       element.scrollIntoView({ behavior: "auto", block: "start" });
     } else {
-      const x = asNumber(args["x"]) ?? window.scrollX;
-      const y = asNumber(args["y"]) ?? window.scrollY;
+      const x = asNumber(args.x) ?? window.scrollX;
+      const y = asNumber(args.y) ?? window.scrollY;
       window.scrollTo(x, y);
     }
 
@@ -273,7 +273,7 @@ async function handleTool(name: ToolName, args: Record<string, unknown>): Promis
   }
 
   if (name === "page.get_html") {
-    const selector = asString(args["selector"]);
+    const selector = asString(args.selector);
     const element = selector ? document.querySelector(selector) : document.documentElement;
     if (!element) {
       throw new Error("Element not found");

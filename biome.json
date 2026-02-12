@@ -28,7 +28,7 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noTsIgnore": "error",
+        "noCommentText": "error",
         "noConsole": "warn"
       },
       "complexity": {

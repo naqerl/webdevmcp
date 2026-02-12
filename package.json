@@ -3,15 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "companion",
-    "extension",
-    "packages/protocol"
-  ],
+  "workspaces": ["companion", "extension", "packages/protocol"],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@tsconfig/strictest": "^2.0.5",
     "@types/node": "^22.13.4",
+    "@types/ws": "^8.18.1",
     "playwright": "^1.51.0",
     "typescript": "^5.8.2",
     "vitest": "^3.0.8"

@@ -1,7 +1,7 @@
-import { chromium, firefox, type BrowserType } from "playwright";
+import { type BrowserType, chromium, firefox } from "playwright";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { createTestAppServer, type TestAppServer } from "./helpers/testAppServer.js";
+import { type TestAppServer, createTestAppServer } from "./helpers/testAppServer.js";
 
 type SupportedBrowser = "chromium" | "firefox";
 
@@ -37,8 +37,8 @@ async function runBrowserFlow(browserType: BrowserType, appUrl: string): Promise
     expect(domSnapshot.buttonCount).toBe(1);
     expect(domSnapshot.listItems).toContain("from-e2e");
 
-    const accessibility = await page.accessibility.snapshot();
-    expect(accessibility).toBeTruthy();
+    const h1Text = await page.textContent("[data-testid='title']");
+    expect(h1Text).toContain("E2E Harness App");
   } finally {
     await browser.close();
   }

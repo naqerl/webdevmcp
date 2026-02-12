@@ -1,6 +1,6 @@
-import { WebSocketServer, type WebSocket } from "ws";
+import { type RawData, type WebSocket, WebSocketServer } from "ws";
 
-import type { BridgeMessage, BridgeToolCall, BridgeToolResult, ToolName } from "@webviewmcp/protocol";
+import type { BridgeMessage, BridgeToolCall, ToolName } from "@webviewmcp/protocol";
 
 interface PendingRequest {
   resolve: (value: unknown) => void;
@@ -17,10 +17,10 @@ export class ExtensionBridge {
 
   constructor(port: number) {
     this.#wsServer = new WebSocketServer({ host: "127.0.0.1", port, path: "/bridge" });
-    this.#wsServer.on("connection", (socket) => {
+    this.#wsServer.on("connection", (socket: WebSocket) => {
       this.#socket = socket;
 
-      socket.on("message", (raw) => {
+      socket.on("message", (raw: RawData) => {
         this.#onMessage(raw.toString("utf8"));
       });
 
@@ -58,7 +58,7 @@ export class ExtensionBridge {
         timeout,
       });
 
-      socket.send(JSON.stringify(payload), (error) => {
+      socket.send(JSON.stringify(payload), (error?: Error) => {
         if (!error) {
           return;
         }

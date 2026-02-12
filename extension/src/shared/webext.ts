@@ -28,10 +28,7 @@ interface TabsApi {
 interface RuntimeApi {
   onMessage: {
     addListener: (
-      listener: (
-        message: unknown,
-        sender: RuntimeMessageSender,
-      ) => Promise<unknown> | unknown,
+      listener: (message: unknown, sender: RuntimeMessageSender) => Promise<unknown> | unknown,
     ) => void;
   };
 }
@@ -49,12 +46,12 @@ function getGlobal(): Record<string, unknown> {
 
 export function getWebExtensionApi(): WebExtensionApi {
   const root = getGlobal();
-  const browserApi = root["browser"];
+  const browserApi = root.browser;
   if (browserApi && typeof browserApi === "object") {
     return browserApi as WebExtensionApi;
   }
 
-  const chromeApi = root["chrome"];
+  const chromeApi = root.chrome;
   if (chromeApi && typeof chromeApi === "object") {
     return chromeApi as WebExtensionApi;
   }

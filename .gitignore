@@ -3,6 +3,8 @@ dist
 coverage
 extension/manifest.json
 playwright-report
+*.tsbuildinfo
+dist-tests
 .env
 *.log
 .vscode
