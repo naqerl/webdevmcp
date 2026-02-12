@@ -1,0 +1,10 @@
+{
+  "name": "@webviewmcp/companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@webviewmcp/protocol": "0.1.0",
+    "ws": "^8.18.1"
+  }
+}
