@@ -52,7 +52,7 @@ fetch_asset() {
   local asset="$1"
   local out="$2"
   local url="${BASE_URL}/${asset}"
-  curl -fsSL --retry 3 --retry-delay 2 "$url" -o "$out"
+  curl -fL --progress-bar --retry 3 --retry-delay 2 "$url" -o "$out"
 }
 
 fetch_asset "webviewmcp-chromium.zip" "$CHROMIUM_ZIP"
