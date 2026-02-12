@@ -38,7 +38,7 @@ webdev
 - Headless mode
 4. Companion writes `webdev.toml`, launches browser with isolated project profile, opens configured tabs, and starts MCP server.
 
-If you run browsers outside Playwright-managed launch, install extension manually from installer output paths.
+If you run browsers manually, install extension manually from installer output paths.
 
 MCP endpoint:
 - `http://127.0.0.1:8787/mcp`
