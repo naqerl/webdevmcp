@@ -27,9 +27,9 @@ Installer output includes local extension payload paths for manual browser insta
 ```bash
 cd /path/to/project
 ```
-2. Run companion:
+2. Run tool:
 ```bash
-webviewmcp-companion
+webdev
 ```
 3. If `webdev.toml` is missing, companion prompts for:
 - Browser (`chromium` / `firefox` / `webkit`)

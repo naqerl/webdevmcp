@@ -56,7 +56,7 @@ Artifacts:
 
 Companion release binary is built in CI with Bun:
 
-- `webviewmcp-companion-linux-x64`
+- `webdev-linux-x64`
 
 ## Testing
 
@@ -100,7 +100,7 @@ On tag push (`v*`):
 - attach:
   - `webviewmcp-chromium.zip`
   - `webviewmcp-firefox.zip`
-  - `webviewmcp-companion-linux-x64`
+  - `webdev-linux-x64`
   - `install.sh`
 
 ## Release

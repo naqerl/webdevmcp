@@ -47,7 +47,7 @@ jobs:
 
       - name: Prepare release assets
         run: |
-          cp artifacts/bin/webviewmcp-companion-linux-x64 artifacts/extensions/
+          cp artifacts/bin/webdev-linux-x64 artifacts/extensions/
           cp scripts/install.sh artifacts/extensions/install.sh
 
       - name: Upload build artifacts
@@ -57,7 +57,7 @@ jobs:
           path: |
             artifacts/extensions/webviewmcp-chromium.zip
             artifacts/extensions/webviewmcp-firefox.zip
-            artifacts/extensions/webviewmcp-companion-linux-x64
+            artifacts/extensions/webdev-linux-x64
             artifacts/extensions/install.sh
 
   release:
@@ -80,6 +80,6 @@ jobs:
           files: |
             artifacts/extensions/webviewmcp-chromium.zip
             artifacts/extensions/webviewmcp-firefox.zip
-            artifacts/extensions/webviewmcp-companion-linux-x64
+            artifacts/extensions/webdev-linux-x64
             artifacts/extensions/install.sh
           generate_release_notes: true

@@ -1,4 +1,4 @@
-import { cwd } from "node:process";
+import { cwd, exit, stderr, stdout } from "node:process";
 
 import type { ToolName } from "@webviewmcp/protocol";
 
@@ -34,9 +34,9 @@ const dispatcher = {
 
 const server = createMcpHttpServer({ dispatcher });
 
-async function bootProjectSession(): Promise<void> {
-  const config = await loadProjectConfig(cwd());
-
+async function bootProjectSession(
+  config: Awaited<ReturnType<typeof loadProjectConfig>>,
+): Promise<void> {
   const launch = await browserManager.launch({
     browser: config.browser,
     project: config.project,
@@ -48,7 +48,7 @@ async function bootProjectSession(): Promise<void> {
     links: config.links,
   });
 
-  process.stdout.write(
+  stdout.write(
     `webviewmcp ready on http://${httpHost}:${String(httpPort)}/mcp with ${config.browser} (${config.project})\n`,
   );
 }
@@ -59,8 +59,31 @@ async function shutdown(): Promise<void> {
   server.close();
 }
 
-server.listen(httpPort, httpHost, () => {
-  void bootProjectSession();
+async function main(): Promise<void> {
+  server.once("error", (error) => {
+    stderr.write(`Failed to start MCP HTTP server: ${error.message}\n`);
+    void shutdown().finally(() => {
+      exit(1);
+    });
+  });
+
+  // Load or create project config first so first-run prompts appear immediately.
+  const config = await loadProjectConfig(cwd());
+
+  await new Promise<void>((resolve) => {
+    server.listen(httpPort, httpHost, () => {
+      resolve();
+    });
+  });
+
+  await bootProjectSession(config);
+}
+
+void main().catch(async (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  stderr.write(`Startup failed: ${message}\n`);
+  await shutdown();
+  exit(1);
 });
 
 process.once("SIGINT", () => {

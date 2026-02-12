@@ -38,8 +38,8 @@ build-companion:
 
 build-companion-binary:
 	mkdir -p artifacts/bin
-	bun build companion/src/index.ts --compile --outfile artifacts/bin/webviewmcp-companion-linux-x64 --external electron --external chromium-bidi
-	chmod +x artifacts/bin/webviewmcp-companion-linux-x64
+	bun build companion/src/index.ts --compile --outfile artifacts/bin/webdev-linux-x64 --external electron --external chromium-bidi
+	chmod +x artifacts/bin/webdev-linux-x64
 
 run-companion: build-companion
 	node companion/dist/index.js
