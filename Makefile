@@ -38,6 +38,7 @@ test-e2e-ssh:
 	LOCAL_E2E_TARGET="$(LOCAL_E2E_TARGET)" \
 	LOCAL_E2E_PORT="$(LOCAL_E2E_PORT)" \
 	BRANCH="$(BRANCH)" \
+	CLEAN_REMOTE="$(CLEAN_REMOTE)" \
 	E2E_RUN_EXTENSION="$(E2E_RUN_EXTENSION)" \
 	./scripts/e2e/run-ssh-tests.sh
 

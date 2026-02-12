@@ -10,11 +10,13 @@ set -euo pipefail
 # - LOCAL_E2E_PORT (default: 22)
 # - BRANCH (checkout + pull before tests)
 # - E2E_RUN_EXTENSION (default: 0)
+# - CLEAN_REMOTE (default: 0; if 1, hard-reset + clean before branch sync)
 
 LOCAL_E2E_TARGET="${LOCAL_E2E_TARGET:-}"
 LOCAL_E2E_PORT="${LOCAL_E2E_PORT:-22}"
 BRANCH_NAME="${BRANCH:-}"
 RUN_EXTENSION="${E2E_RUN_EXTENSION:-0}"
+CLEAN_REMOTE="${CLEAN_REMOTE:-0}"
 
 if [[ -z "${LOCAL_E2E_TARGET}" ]]; then
   echo "LOCAL_E2E_TARGET is required (example: user@localhost:/home/user/code/webviewmcp)" >&2
@@ -49,6 +51,7 @@ ssh -p "${LOCAL_E2E_PORT}" \
   REMOTE_PATH="${REMOTE_PATH}" \
   BRANCH_NAME="${BRANCH_NAME}" \
   RUN_EXTENSION="${RUN_EXTENSION}" \
+  CLEAN_REMOTE="${CLEAN_REMOTE}" \
   "bash -s" <<'EOF'
 set -euo pipefail
 
@@ -72,6 +75,11 @@ fi
 cd "${REMOTE_PATH}"
 
 if [[ -n "${BRANCH_NAME}" ]]; then
+  if [[ "${CLEAN_REMOTE}" == "1" ]]; then
+    git reset --hard
+    git clean -fd
+  fi
+
   git fetch --all --prune
   git checkout "${BRANCH_NAME}"
   git pull --ff-only origin "${BRANCH_NAME}"

@@ -97,3 +97,9 @@ When `BRANCH` is set, the remote command runs:
 - `git fetch --all --prune`
 - `git checkout <branch>`
 - `git pull --ff-only origin <branch>`
+
+If the remote checkout is dirty and blocks pull, use:
+
+```bash
+CLEAN_REMOTE=1 BRANCH=debug/my-fix make test-e2e-ssh
+```
