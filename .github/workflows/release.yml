@@ -43,10 +43,7 @@ jobs:
         run: make package-extensions
 
       - name: Build companion binary
-        run: |
-          mkdir -p artifacts/bin
-          bun build companion/src/index.ts --compile --outfile artifacts/bin/webviewmcp-companion-linux-x64
-          chmod +x artifacts/bin/webviewmcp-companion-linux-x64
+        run: make build-companion-binary
 
       - name: Prepare release assets
         run: |

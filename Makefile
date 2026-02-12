@@ -3,7 +3,7 @@ SHELL := /bin/bash
 NPM := npm
 NPM_EXEC := $(NPM) exec --
 
-.PHONY: install ci-install format lint typecheck verify test test-unit test-integration test-e2e test-e2e-local build-companion run-companion build-extension package-extensions clean
+.PHONY: install ci-install format lint typecheck verify test test-unit test-integration test-e2e test-e2e-local build-companion build-companion-binary run-companion build-extension package-extensions clean
 
 install:
 	$(NPM) install
@@ -35,6 +35,11 @@ test-e2e-local: build-extension test-e2e
 
 build-companion:
 	$(NPM_EXEC) tsc -b companion/tsconfig.json --pretty false --noEmit false
+
+build-companion-binary:
+	mkdir -p artifacts/bin
+	bun build companion/src/index.ts --compile --outfile artifacts/bin/webviewmcp-companion-linux-x64 --external electron --external chromium-bidi
+	chmod +x artifacts/bin/webviewmcp-companion-linux-x64
 
 run-companion: build-companion
 	node companion/dist/index.js
