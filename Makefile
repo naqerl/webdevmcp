@@ -1,12 +1,9 @@
 SHELL := /bin/bash
 
--include example.env
--include .env
-
 NPM := npm
 NPM_EXEC := $(NPM) exec --
 
-.PHONY: install format lint typecheck test test-unit test-integration test-e2e test-e2e-local test-e2e-remote test-e2e-ssh build-companion run-companion build-extension clean
+.PHONY: install format lint typecheck test test-unit test-integration test-e2e test-e2e-local build-companion run-companion build-extension clean
 
 install:
 	$(NPM) install
@@ -30,17 +27,6 @@ test-e2e:
 	$(NPM_EXEC) vitest run --config vitest.e2e.config.ts
 
 test-e2e-local: build-extension test-e2e
-
-test-e2e-remote:
-	./scripts/e2e/push-and-run-local.sh
-
-test-e2e-ssh:
-	LOCAL_E2E_TARGET="$(LOCAL_E2E_TARGET)" \
-	LOCAL_E2E_PORT="$(LOCAL_E2E_PORT)" \
-	BRANCH="$(BRANCH)" \
-	CLEAN_REMOTE="$(CLEAN_REMOTE)" \
-	E2E_RUN_EXTENSION="$(E2E_RUN_EXTENSION)" \
-	./scripts/e2e/run-ssh-tests.sh
 
 build-companion:
 	$(NPM_EXEC) tsc -b companion/tsconfig.json --pretty false --noEmit false
