@@ -3,7 +3,7 @@ SHELL := /bin/bash
 NPM := npm
 NPM_EXEC := $(NPM) exec --
 
-.PHONY: install ci-install format lint typecheck verify test test-unit test-integration test-e2e test-e2e-local build-companion build-companion-binary package-playwright-runtime run-companion build-extension package-extensions clean
+.PHONY: install ci-install format lint typecheck verify test test-unit test-integration test-e2e test-e2e-local build-companion build-companion-binary run-companion build-extension package-extensions clean
 
 install:
 	$(NPM) install
@@ -40,13 +40,6 @@ build-companion-binary:
 	mkdir -p artifacts/bin
 	bun build companion/src/index.ts --compile --outfile artifacts/bin/webdev-linux-x64 --external playwright --external playwright-core --external electron --external chromium-bidi
 	chmod +x artifacts/bin/webdev-linux-x64
-
-package-playwright-runtime:
-	rm -rf artifacts/runtime
-	mkdir -p artifacts/runtime/node_modules
-	cp -R node_modules/playwright artifacts/runtime/node_modules/
-	cp -R node_modules/playwright-core artifacts/runtime/node_modules/
-	cd artifacts/runtime && tar -czf ../extensions/webdev-runtime-node_modules.tar.gz node_modules
 
 run-companion: build-companion
 	node companion/dist/index.js

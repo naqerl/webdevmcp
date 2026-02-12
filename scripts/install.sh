@@ -20,7 +20,15 @@ need_cmd() {
 
 need_cmd curl
 need_cmd unzip
-need_cmd tar
+
+if command -v bun >/dev/null 2>&1; then
+  PACKAGE_MANAGER="bun"
+elif command -v npm >/dev/null 2>&1; then
+  PACKAGE_MANAGER="npm"
+else
+  echo "missing required command: bun or npm" >&2
+  exit 1
+fi
 
 mkdir -p "$BIN_DIR" "$DATA_DIR/extensions"
 
@@ -47,8 +55,8 @@ BASE_URL="https://github.com/${REPO}/releases/latest/download"
 
 CHROMIUM_ZIP="$TMP_DIR/webviewmcp-chromium.zip"
 FIREFOX_ZIP="$TMP_DIR/webviewmcp-firefox.zip"
-RUNTIME_TAR="$TMP_DIR/webdev-runtime-node_modules.tar.gz"
 COMPANION_BIN="$TMP_DIR/webdev"
+PLAYWRIGHT_VERSION="${WEBVIEWMCP_PLAYWRIGHT_VERSION:-1.51.0}"
 
 fetch_asset() {
   local asset="$1"
@@ -59,7 +67,6 @@ fetch_asset() {
 
 fetch_asset "webviewmcp-chromium.zip" "$CHROMIUM_ZIP"
 fetch_asset "webviewmcp-firefox.zip" "$FIREFOX_ZIP"
-fetch_asset "webdev-runtime-node_modules.tar.gz" "$RUNTIME_TAR"
 fetch_asset "$COMPANION_ASSET" "$COMPANION_BIN"
 
 chmod +x "$COMPANION_BIN"
@@ -75,7 +82,30 @@ mkdir -p "$EXT_CHROMIUM_DIR" "$EXT_FIREFOX_DIR"
 unzip -q "$CHROMIUM_ZIP" -d "$EXT_CHROMIUM_DIR"
 unzip -q "$FIREFOX_ZIP" -d "$EXT_FIREFOX_DIR"
 mkdir -p "$RUNTIME_DIR"
-tar -xzf "$RUNTIME_TAR" -C "$RUNTIME_DIR"
+
+cat > "$RUNTIME_DIR/package.json" <<EOF
+{
+  "name": "webdevmcp-runtime",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright": "${PLAYWRIGHT_VERSION}",
+    "playwright-core": "${PLAYWRIGHT_VERSION}"
+  }
+}
+EOF
+
+if [[ "$PACKAGE_MANAGER" == "bun" ]]; then
+  (
+    cd "$RUNTIME_DIR"
+    bun install --production
+  )
+else
+  (
+    cd "$RUNTIME_DIR"
+    npm install --omit=dev --no-audit --no-fund
+  )
+fi
 
 cat > "$BIN_DIR/webdev" <<EOF
 #!/usr/bin/env bash
