@@ -154,18 +154,82 @@ SCRIPT
 
 find_firefox_profile() {
   local root="$1"
+  local ini
+  local selected
+  local is_relative
+  local path_value
+  local resolved
 
   if [[ ! -d "$root" ]]; then
     return 1
   fi
 
-  local profile
-  profile=$(find "$root" -maxdepth 1 -type d \( -name "*.default-release" -o -name "*.default*" \) | head -n1 || true)
-  if [[ -z "$profile" ]]; then
+  ini="$root/profiles.ini"
+  if [[ -f "$ini" ]]; then
+    selected="$(
+      awk '
+        BEGIN {
+          RS = "";
+          FS = "\n";
+          first = "";
+          chosen = "";
+        }
+        /^\[Profile/ {
+          path = "";
+          is_relative = "1";
+          is_default = "0";
+
+          for (i = 1; i <= NF; i++) {
+            split($i, kv, "=");
+            key = kv[1];
+            val = kv[2];
+            if (key == "Path") path = val;
+            if (key == "IsRelative") is_relative = val;
+            if (key == "Default") is_default = val;
+          }
+
+          if (path != "") {
+            entry = is_relative ":" path;
+            if (first == "") first = entry;
+            if (is_default == "1") chosen = entry;
+          }
+        }
+        END {
+          if (chosen != "") {
+            print chosen;
+          } else if (first != "") {
+            print first;
+          }
+        }
+      ' "$ini"
+    )"
+
+    if [[ -n "$selected" ]]; then
+      is_relative="${selected%%:*}"
+      path_value="${selected#*:}"
+      if [[ "$is_relative" == "1" ]]; then
+        resolved="$root/$path_value"
+      else
+        resolved="$path_value"
+      fi
+
+      if [[ -d "$resolved" ]]; then
+        echo "$resolved"
+        return 0
+      fi
+    fi
+  fi
+
+  resolved="$(
+    find "$root" -maxdepth 2 -type d \
+      \( -name "*.default-release" -o -name "*.default*" -o -name "*.dev-edition-default*" \) \
+      | head -n1 || true
+  )"
+  if [[ -z "$resolved" ]]; then
     return 1
   fi
 
-  echo "$profile"
+  echo "$resolved"
 }
 
 install_firefox_xpi() {
@@ -178,6 +242,8 @@ install_firefox_xpi() {
   cp "$FIREFOX_ZIP" "$profile/extensions/webviewmcp@local.xpi"
   return 0
 }
+
+failures=0
 
 for i in "${!IDS[@]}"; do
   if [[ -z "${CHOSEN[$i]:-}" ]]; then
@@ -201,19 +267,28 @@ for i in "${!IDS[@]}"; do
       if install_firefox_xpi "$HOME/.var/app/org.mozilla.firefox/.mozilla/firefox"; then
         echo "Installed Firefox extension in Flatpak profile"
       else
-        echo "Could not find Flatpak Firefox profile for extension install" >&2
+        echo "Could not find Flatpak Firefox profile for extension install." >&2
+        echo "Run Firefox Flatpak once, close it, then rerun installer." >&2
+        failures=$((failures + 1))
       fi
     else
       if install_firefox_xpi "$HOME/.mozilla/firefox"; then
         echo "Installed Firefox extension in default profile"
       else
-        echo "Could not find Firefox profile for extension install" >&2
+        echo "Could not find Firefox profile for extension install." >&2
+        echo "Run Firefox once, close it, then rerun installer." >&2
+        failures=$((failures + 1))
       fi
     fi
   fi
 done
 
 echo
+if (( failures > 0 )); then
+  echo "Installation completed with ${failures} error(s)." >&2
+  exit 1
+fi
+
 echo "Installation complete."
 echo "Companion binary: $BIN_DIR/webviewmcp-companion"
 echo "If $BIN_DIR is not in PATH, add: export PATH=\"$BIN_DIR:\$PATH\""
