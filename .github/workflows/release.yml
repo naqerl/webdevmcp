@@ -25,7 +25,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm ci
+        run: make ci-install
 
       - name: Lint
         run: make lint

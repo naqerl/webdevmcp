@@ -3,10 +3,13 @@ SHELL := /bin/bash
 NPM := npm
 NPM_EXEC := $(NPM) exec --
 
-.PHONY: install format lint typecheck test test-unit test-integration test-e2e test-e2e-local build-companion run-companion build-extension package-extensions clean
+.PHONY: install ci-install format lint typecheck verify test test-unit test-integration test-e2e test-e2e-local build-companion run-companion build-extension package-extensions clean
 
 install:
 	$(NPM) install
+
+ci-install:
+	$(NPM) ci
 
 format:
 	$(NPM_EXEC) biome format --write .
@@ -16,6 +19,8 @@ lint:
 
 typecheck:
 	$(NPM_EXEC) tsc -b --pretty false
+
+verify: lint typecheck test-unit test-integration
 
 test-unit:
 	$(NPM_EXEC) vitest run --config vitest.unit.config.ts

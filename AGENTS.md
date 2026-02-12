@@ -15,6 +15,12 @@ make install
 npx playwright install chromium firefox
 ```
 
+For CI-equivalent dependency install:
+
+```bash
+make ci-install
+```
+
 ## Build
 
 Build extension bundle + manifests:
@@ -61,6 +67,12 @@ make test-unit
 make test-integration
 make test-e2e
 make test
+```
+
+Fast CI-style verification:
+
+```bash
+make verify
 ```
 
 Run Chromium extension E2E test:
