@@ -50,7 +50,7 @@ async function handleToolCall(api: ReturnType<typeof getWebExtensionApi>, call: 
   }
 
   if (call.name === "page.screenshot") {
-    const tabId = asNumber(call.args.tabId);
+    const tabId = asNumber(call.args["tabId"]);
     if (tabId === null) {
       throw new Error("tabId is required");
     }
@@ -70,12 +70,12 @@ async function handleToolCall(api: ReturnType<typeof getWebExtensionApi>, call: 
     };
   }
 
-  const tabId = asNumber(call.args.tabId);
+  const tabId = asNumber(call.args["tabId"]);
   if (tabId === null) {
     throw new Error("tabId is required");
   }
 
-  const frameId = asNumber(call.args.frameId) ?? 0;
+  const frameId = asNumber(call.args["frameId"]) ?? 0;
   const message: ContentToolRequest = {
     type: "mcp_tool",
     name: call.name,

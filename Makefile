@@ -42,13 +42,13 @@ test-e2e-ssh:
 	./scripts/e2e/run-ssh-tests.sh
 
 build-companion:
-	$(NPM_EXEC) tsc -p companion/tsconfig.json --pretty false --noEmit false
+	$(NPM_EXEC) tsc -b companion/tsconfig.json --pretty false --noEmit false
 
 run-companion: build-companion
 	node companion/dist/index.js
 
 build-extension:
-	$(NPM_EXEC) tsc -p extension/tsconfig.json --pretty false --noEmit false
+	$(NPM_EXEC) tsc -b extension/tsconfig.json --pretty false --noEmit false
 	$(NPM_EXEC) node scripts/build-manifests.mjs
 
 test: test-unit test-integration test-e2e

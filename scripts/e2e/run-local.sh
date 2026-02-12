@@ -22,6 +22,6 @@ if command -v make >/dev/null 2>&1; then
   exit 0
 fi
 
-npm exec -- tsc -p extension/tsconfig.json --pretty false --noEmit false
+npm exec -- tsc -b extension/tsconfig.json --pretty false --noEmit false
 npm exec -- node scripts/build-manifests.mjs
 npm exec -- vitest run --config vitest.e2e.config.ts

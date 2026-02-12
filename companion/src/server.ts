@@ -69,7 +69,7 @@ function asObject(value: unknown): Record<string, unknown> | null {
 }
 
 function readSessionArgument(args: Record<string, unknown>): string | null {
-  const sessionId = args.sessionId;
+  const sessionId = args["sessionId"];
   if (typeof sessionId !== "string" || sessionId.length === 0) {
     return null;
   }
@@ -78,8 +78,8 @@ function readSessionArgument(args: Record<string, unknown>): string | null {
 }
 
 function parseAttachArguments(args: Record<string, unknown>): SessionRef | null {
-  const tabId = args.tabId;
-  const frameId = args.frameId ?? 0;
+  const tabId = args["tabId"];
+  const frameId = args["frameId"] ?? 0;
 
   if (typeof tabId !== "number" || !Number.isInteger(tabId)) {
     return null;
@@ -111,7 +111,7 @@ export async function handleJsonRpc(
   }
 
   const params = asObject(request.params);
-  if (!params || !isToolName(params.name)) {
+  if (!params || !isToolName(params["name"])) {
     return createJsonRpcError(id, -32602, "Invalid params");
   }
 
