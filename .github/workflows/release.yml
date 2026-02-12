@@ -1,0 +1,88 @@
+name: Build And Release
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: make lint
+
+      - name: Typecheck
+        run: make typecheck
+
+      - name: Unit tests
+        run: make test-unit
+
+      - name: Integration tests
+        run: make test-integration
+
+      - name: Package extensions
+        run: make package-extensions
+
+      - name: Build companion binary
+        run: |
+          mkdir -p artifacts/bin
+          bun build companion/src/index.ts --compile --outfile artifacts/bin/webviewmcp-companion-linux-x64
+          chmod +x artifacts/bin/webviewmcp-companion-linux-x64
+
+      - name: Prepare release assets
+        run: |
+          cp artifacts/bin/webviewmcp-companion-linux-x64 artifacts/extensions/
+          cp scripts/install.sh artifacts/extensions/install.sh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: webviewmcp-release-assets
+          path: |
+            artifacts/extensions/webviewmcp-chromium.zip
+            artifacts/extensions/webviewmcp-firefox.zip
+            artifacts/extensions/webviewmcp-companion-linux-x64
+            artifacts/extensions/install.sh
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-linux
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: webviewmcp-release-assets
+          path: artifacts/extensions
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/extensions/webviewmcp-chromium.zip
+            artifacts/extensions/webviewmcp-firefox.zip
+            artifacts/extensions/webviewmcp-companion-linux-x64
+            artifacts/extensions/install.sh
+          generate_release_notes: true

@@ -13,8 +13,14 @@ async function buildManifest(target) {
     ...rest,
   };
 
-  await writeFile(resolve(root, `manifest.${target}.built.json`), `${JSON.stringify(merged, null, 2)}\n`);
-  await writeFile(resolve(root, `dist`, `${target}.manifest.json`), `${JSON.stringify(merged, null, 2)}\n`);
+  await writeFile(
+    resolve(root, `manifest.${target}.built.json`),
+    `${JSON.stringify(merged, null, 2)}\n`,
+  );
+  await writeFile(
+    resolve(root, "dist", `${target}.manifest.json`),
+    `${JSON.stringify(merged, null, 2)}\n`,
+  );
 
   if (target === "chromium") {
     await writeFile(resolve(root, "manifest.json"), `${JSON.stringify(merged, null, 2)}\n`);

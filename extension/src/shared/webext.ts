@@ -28,10 +28,7 @@ interface TabsApi {
 interface RuntimeApi {
   onMessage: {
     addListener: (
-      listener: (
-        message: unknown,
-        sender: RuntimeMessageSender,
-      ) => Promise<unknown> | unknown,
+      listener: (message: unknown, sender: RuntimeMessageSender) => Promise<unknown> | unknown,
     ) => void;
   };
 }

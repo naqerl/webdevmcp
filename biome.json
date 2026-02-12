@@ -7,7 +7,14 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": ["dist", "coverage", "node_modules"]
+    "ignore": [
+      "dist",
+      "coverage",
+      "node_modules",
+      "artifacts",
+      "extension/manifest.json",
+      "extension/manifest.*.built.json"
+    ]
   },
   "formatter": {
     "enabled": true,

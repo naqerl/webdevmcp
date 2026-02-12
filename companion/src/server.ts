@@ -1,9 +1,6 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
 
 import {
-  createJsonRpcError,
-  createToolDescriptors,
-  isToolName,
   type InitializeResult,
   type JsonRpcRequest,
   type JsonRpcResponse,
@@ -11,6 +8,9 @@ import {
   type ToolName,
   type ToolsCallParams,
   type ToolsListResult,
+  createJsonRpcError,
+  createToolDescriptors,
+  isToolName,
 } from "@webviewmcp/protocol";
 
 import { SessionStore } from "./sessionStore.js";
@@ -68,6 +68,27 @@ function asObject(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function parseToolsCallParams(value: unknown): ToolsCallParams | null {
+  const objectValue = asObject(value);
+  if (!objectValue) {
+    return null;
+  }
+
+  if (!isToolName(objectValue.name)) {
+    return null;
+  }
+
+  const argumentsValue = asObject(objectValue.arguments);
+  if (!argumentsValue) {
+    return null;
+  }
+
+  return {
+    name: objectValue.name,
+    arguments: argumentsValue,
+  };
+}
+
 function readSessionArgument(args: Record<string, unknown>): string | null {
   const sessionId = args.sessionId;
   if (typeof sessionId !== "string" || sessionId.length === 0) {
@@ -110,16 +131,12 @@ export async function handleJsonRpc(
     return createJsonRpcError(id, -32601, "Method not found");
   }
 
-  const params = asObject(request.params);
-  if (!params || !isToolName(params.name)) {
+  const callParams = parseToolsCallParams(request.params);
+  if (!callParams) {
     return createJsonRpcError(id, -32602, "Invalid params");
   }
 
-  const callParams = params as ToolsCallParams;
-  const args = asObject(callParams.arguments);
-  if (!args) {
-    return createJsonRpcError(id, -32602, "Invalid params");
-  }
+  const args = callParams.arguments;
 
   const sessionStore = options.sessionStore;
   if (!sessionStore) {

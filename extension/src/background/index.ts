@@ -1,7 +1,7 @@
 import type { BridgeMessage, BridgeToolCall, BridgeToolResult } from "@webviewmcp/protocol";
 
 import type { ContentToolRequest, ContentToolResponse } from "../shared/messages.js";
-import { getWebExtensionApi, type Tab } from "../shared/webext.js";
+import { type Tab, getWebExtensionApi } from "../shared/webext.js";
 
 const BRIDGE_URL = "ws://127.0.0.1:8788/bridge";
 
@@ -43,7 +43,10 @@ function serializeTab(tab: Tab): Record<string, unknown> {
   };
 }
 
-async function handleToolCall(api: ReturnType<typeof getWebExtensionApi>, call: BridgeToolCall): Promise<unknown> {
+async function handleToolCall(
+  api: ReturnType<typeof getWebExtensionApi>,
+  call: BridgeToolCall,
+): Promise<unknown> {
   if (call.name === "tabs.list") {
     const tabs = await api.tabs.query({});
     return { tabs: tabs.map(serializeTab) };

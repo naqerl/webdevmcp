@@ -1,41 +1,49 @@
 # webviewmcp
 
-`webviewmcp` is a browser extension + local companion service that exposes web page debugging and interaction tools over MCP HTTP. It lets agents inspect pages, interact with elements, and capture screenshots in real browsers.
+`webviewmcp` is an MCP bridge for real browsers. It ships a browser extension plus a local companion binary so agents can inspect pages, interact with UI elements, and debug web apps over HTTP.
 
 ## Features
 
-- Cross-browser support (Chromium + Firefox builds)
-- MCP HTTP endpoint for agent tooling
-- DOM inspection and page structure querying
-- Element interaction (click/type/keypress/scroll)
+- MCP HTTP endpoint for browser automation/debugging
+- Page structure inspection (DOM snapshot/query)
+- Element interaction (click, type, keypress, scroll)
 - Screenshot capture
-- Local-first debugging workflow
+- Chromium and Firefox extension builds
+- Local companion binary (`webviewmcp-companion`)
+- Interactive installer with browser detection (including Flatpak browsers)
 
 ## Install
 
-1. Open the Releases page and download latest artifacts:
-   - `webviewmcp-chromium-v*.zip`
-   - `webviewmcp-firefox-v*.zip`
-2. Extract each zip locally.
+Install latest release with:
 
-### Chromium
+```bash
+curl -fsSL https://github.com/naqerl/webdevmcp/releases/latest/download/install.sh | bash
+```
 
-1. Open `chrome://extensions`
-2. Enable `Developer mode`
-3. Click `Load unpacked`
-4. Select the extracted Chromium extension folder (contains `manifest.json`)
+Installer will:
 
-### Firefox
+1. Detect installed browsers (native and Flatpak)
+2. Prompt which browsers to configure (one or multiple)
+3. Install extension payloads under `~/.local/share/webviewmcp/extensions/`
+4. Install companion binary to `~/.local/bin/webviewmcp-companion`
+5. Create Chromium-family launcher wrappers in `~/.local/bin/` that load the extension automatically
 
-1. Open `about:debugging#/runtime/this-firefox`
-2. Click `Load Temporary Add-on...`
-3. Select `manifest.json` from the extracted Firefox extension folder
+Notes:
 
-## Companion Service
+- Add `~/.local/bin` to `PATH` if needed.
+- Firefox installation is attempted via profile XPI placement and can be limited by unsigned add-on policy on stable Firefox builds.
 
-Run the local companion service to expose MCP over HTTP:
+## Run
 
-- HTTP MCP: `http://127.0.0.1:8787/mcp`
-- Extension bridge: `ws://127.0.0.1:8788/bridge`
+Start companion:
 
-See `AGENTS.md` for development and build details.
+```bash
+webviewmcp-companion
+```
+
+Endpoints:
+
+- `http://127.0.0.1:8787/mcp`
+- `ws://127.0.0.1:8788/bridge`
+
+Development notes are in `AGENTS.md`.

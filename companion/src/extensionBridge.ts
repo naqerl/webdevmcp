@@ -1,6 +1,6 @@
-import { WebSocketServer, type WebSocket } from "ws";
+import { type WebSocket, WebSocketServer } from "ws";
 
-import type { BridgeMessage, BridgeToolCall, BridgeToolResult, ToolName } from "@webviewmcp/protocol";
+import type { BridgeMessage, BridgeToolCall, ToolName } from "@webviewmcp/protocol";
 
 interface PendingRequest {
   resolve: (value: unknown) => void;

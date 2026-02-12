@@ -1,9 +1,9 @@
 import type { ToolName } from "@webviewmcp/protocol";
 
 import {
-  isContentToolRequest,
   type ContentToolRequest,
   type ContentToolResponse,
+  isContentToolRequest,
 } from "../shared/messages.js";
 import { getWebExtensionApi } from "../shared/webext.js";
 
@@ -58,18 +58,18 @@ function selectorFor(element: Element): string {
       break;
     }
 
-    const parent = current.parentElement;
-    if (!parent) {
+    const parentNode: Element | null = current.parentElement;
+    if (!parentNode) {
       parts.unshift(tagName);
       break;
     }
 
-    const sameTagSiblings = Array.from(parent.children).filter(
-      (child) => child.tagName.toLowerCase() === tagName,
+    const sameTagSiblings = Array.from(parentNode.children).filter(
+      (child: Element) => child.tagName.toLowerCase() === tagName,
     );
     const siblingIndex = sameTagSiblings.indexOf(current) + 1;
     parts.unshift(`${tagName}:nth-of-type(${siblingIndex})`);
-    current = parent;
+    current = parentNode;
   }
 
   return parts.join(" > ");
@@ -146,7 +146,9 @@ function queryElements(args: Record<string, unknown>): Element[] {
   }
 
   const all = asBoolean(args.all, false);
-  return all ? Array.from(document.querySelectorAll(selector)) : Array.from(document.querySelectorAll(selector)).slice(0, 1);
+  return all
+    ? Array.from(document.querySelectorAll(selector))
+    : Array.from(document.querySelectorAll(selector)).slice(0, 1);
 }
 
 async function waitFor(args: Record<string, unknown>): Promise<{ ok: true; elapsedMs: number }> {

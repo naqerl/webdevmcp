@@ -3,11 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "companion",
-    "extension",
-    "packages/protocol"
-  ],
+  "workspaces": ["companion", "extension", "packages/protocol"],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@tsconfig/strictest": "^2.0.5",

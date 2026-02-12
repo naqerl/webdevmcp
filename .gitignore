@@ -1,8 +1,12 @@
 node_modules
 dist
 coverage
+artifacts
 extension/manifest.json
+extension/manifest.*.built.json
 playwright-report
+*.tsbuildinfo
+dist-tests
 *.log
 .vscode
 .DS_Store
