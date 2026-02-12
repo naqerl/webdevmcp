@@ -1,0 +1,66 @@
+name: Build And Release Extension
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: make lint
+
+      - name: Typecheck
+        run: make typecheck
+
+      - name: Unit tests
+        run: make test-unit
+
+      - name: Integration tests
+        run: make test-integration
+
+      - name: Package extensions
+        run: make package-extensions
+
+      - name: Upload extension artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-packages
+          path: artifacts/extensions/*.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download extension artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-packages
+          path: artifacts/extensions
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/extensions/*.zip
+          generate_release_notes: true
