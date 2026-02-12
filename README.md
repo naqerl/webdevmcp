@@ -2,13 +2,66 @@
 
 Cross-browser MCP bridge for local web app interaction and debugging.
 
+## Requirements
+
+- Node.js 24+
+- npm 11+
+
 ## Setup
 
 ```bash
 make install
+npx playwright install chromium firefox
 ```
 
-## Common Tasks
+## Build
+
+Build extension bundle and manifests:
+
+```bash
+make build-extension
+```
+
+Package both browser builds as zip files:
+
+```bash
+make package-extensions
+```
+
+Output files are created in `artifacts/extensions/`:
+- `webviewmcp-chromium-v<version>.zip`
+- `webviewmcp-firefox-v<version>.zip`
+
+## Run Companion
+
+```bash
+make run-companion
+```
+
+Companion endpoints:
+- `http://127.0.0.1:8787/mcp` (HTTP MCP)
+- `ws://127.0.0.1:8788/bridge` (extension bridge)
+
+## Load Extension Locally
+
+### Chromium
+
+1. Run `make build-extension`
+2. Open `chrome://extensions`
+3. Enable `Developer mode`
+4. Click `Load unpacked`
+5. Select the `extension/` folder
+
+### Firefox
+
+1. Run `make build-extension`
+2. Open `about:debugging#/runtime/this-firefox`
+3. Click `Load Temporary Add-on...`
+4. Select `extension/manifest.firefox.built.json`
+
+Note: temporary Firefox add-ons are removed when Firefox restarts.
+
+## Testing
 
 ```bash
 make lint
@@ -19,60 +72,26 @@ make test-e2e
 make test
 ```
 
-## Run Companion
+Enable extension-loaded Chromium E2E test:
 
 ```bash
-make run-companion
+E2E_RUN_EXTENSION=1 make test-e2e-local
 ```
 
-Companion listens on:
-- `http://127.0.0.1:8787/mcp` (HTTP MCP)
-- `ws://127.0.0.1:8788/bridge` (extension bridge)
+## CI/CD
 
-## Strictness Baseline
+GitHub workflow: `.github/workflows/build-and-release.yml`
 
-- TypeScript: extends `@tsconfig/strictest` + additional compiler flags
-- Lint/format: Biome with strict suspicious/style rules
-- Tests: unit/integration (Vitest) + real-browser E2E (Vitest + Playwright)
+- On every push: lint, typecheck, unit/integration tests, package extension artifacts
+- On tag push matching `v*`: creates a GitHub release and attaches both extension zip files
 
-## Real Browser E2E
+## First Release
 
-The E2E suite uses actual Chromium and Firefox instances, not browser mocks.
-
-### Local workstation
+Create and push a semver tag:
 
 ```bash
-./scripts/e2e/run-local.sh
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
-Includes:
-- Cross-browser page interaction checks (Chromium + Firefox)
-- Real screenshot capture assertions
-- DOM structure assertions
-
-Optional extension-loaded Chromium test:
-
-```bash
-E2E_RUN_EXTENSION=1 ./scripts/e2e/run-local.sh
-```
-
-Note: extension-loaded Chromium test runs headed and needs a display (or `xvfb-run`).
-
-### Remote dev server -> local browser workflow
-
-When coding on a remote server without X:
-
-1. Export your local host:
-```bash
-export LOCAL_E2E_HOST=user@my-laptop
-```
-2. Optional local checkout path:
-```bash
-export LOCAL_E2E_DIR=~/webviewmcp
-```
-3. Run:
-```bash
-make test-e2e-remote
-```
-
-This syncs the current remote workspace to your local machine and executes E2E there.
+This triggers the release job automatically.
