@@ -1,4 +1,7 @@
 export const TOOL_NAMES = [
+  "browser.list",
+  "browser.launch",
+  "browser.close",
   "tabs.list",
   "session.attach",
   "session.detach",

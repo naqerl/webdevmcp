@@ -171,7 +171,7 @@ export async function handleJsonRpc(
     return { jsonrpc: "2.0", id, result: { ok } };
   }
 
-  if (callParams.name !== "tabs.list") {
+  if (!callParams.name.startsWith("browser.") && callParams.name !== "tabs.list") {
     const sessionId = readSessionArgument(args);
     if (!sessionId) {
       return createJsonRpcError(id, -32602, "sessionId is required");
